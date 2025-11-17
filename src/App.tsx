@@ -27,6 +27,23 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return company ? <>{children}</> : <Navigate to="/login" />;
 };
 
+const RootRedirect: React.FC = () => {
+  const { company, loading } = useAuth();
+
+  if (loading) {
+    return <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh',
+      color: 'white',
+      fontSize: '1.2rem'
+    }}>Loading...</div>;
+  }
+
+  return company ? <Navigate to="/dashboard" /> : <Navigate to="/login" />;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -90,7 +107,7 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/" element={<RootRedirect />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

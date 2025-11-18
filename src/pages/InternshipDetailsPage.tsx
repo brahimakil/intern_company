@@ -19,16 +19,36 @@ interface InternshipDetails {
   createdAt: string;
 }
 
+interface Application {
+  id: string;
+  studentName: string;
+  studentEmail: string;
+  status: string;
+  coverLetter: string;
+  createdAt: string;
+}
+
+interface Enrollment {
+  id: string;
+  studentName: string;
+  studentEmail: string;
+  enrolledAt: string;
+}
+
 const InternshipDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [internship, setInternship] = useState<InternshipDetails | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (id) {
       fetchInternshipDetails(id);
+      fetchApplications(id);
+      fetchEnrollments(id);
     }
   }, [id]);
 
@@ -42,6 +62,42 @@ const InternshipDetailsPage: React.FC = () => {
       setError('Failed to load internship details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchApplications = async (internshipId: string) => {
+    try {
+      const response = await api.get('/applications');
+      const internshipApplications = response.data
+        .filter((app: any) => app.internshipId === internshipId)
+        .map((app: any) => ({
+          id: app.id,
+          studentName: app.student?.fullName || 'Unknown Student',
+          studentEmail: app.student?.email || 'Unknown Email',
+          status: app.status,
+          coverLetter: app.coverLetter || '',
+          createdAt: app.createdAt,
+        }));
+      setApplications(internshipApplications);
+    } catch (err) {
+      console.error('Error fetching applications:', err);
+    }
+  };
+
+  const fetchEnrollments = async (internshipId: string) => {
+    try {
+      const response = await api.get('/enrollments');
+      const internshipEnrollments = response.data
+        .filter((enrollment: any) => enrollment.internshipId === internshipId)
+        .map((enrollment: any) => ({
+          id: enrollment.id,
+          studentName: enrollment.studentName || 'Unknown Student',
+          studentEmail: enrollment.studentEmail || 'N/A',
+          enrolledAt: enrollment.enrolledDate || enrollment.createdAt,
+        }));
+      setEnrollments(internshipEnrollments);
+    } catch (err) {
+      console.error('Error fetching enrollments:', err);
     }
   };
 
@@ -157,6 +213,76 @@ const InternshipDetailsPage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Applications List */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>📝 Applications ({applications.length})</h2>
+            {applications.length === 0 ? (
+              <p className={styles.emptyMessage}>No applications yet</p>
+            ) : (
+              <div className={styles.listContainer}>
+                {applications.map((app) => (
+                  <div key={app.id} className={styles.listItem}>
+                    <div className={styles.listItemHeader}>
+                      <div className={styles.studentInfo}>
+                        <span className={styles.studentName}>{app.studentName}</span>
+                        <span className={styles.studentEmail}>{app.studentEmail}</span>
+                      </div>
+                      <span className={`${styles.statusBadge} ${styles[app.status]}`}>
+                        {app.status}
+                      </span>
+                    </div>
+                    {app.coverLetter && (
+                      <p className={styles.coverLetterPreview}>
+                        {app.coverLetter.substring(0, 150)}
+                        {app.coverLetter.length > 150 ? '...' : ''}
+                      </p>
+                    )}
+                    <div className={styles.listItemFooter}>
+                      <span className={styles.timestamp}>
+                        Applied: {new Date(app.createdAt).toLocaleDateString()}
+                      </span>
+                      <button 
+                        className={styles.viewButton}
+                        onClick={() => navigate('/applications')}
+                      >
+                        View in Applications
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Enrolled Students List */}
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>👥 Enrolled Students ({enrollments.length})</h2>
+            {enrollments.length === 0 ? (
+              <p className={styles.emptyMessage}>No enrolled students yet</p>
+            ) : (
+              <div className={styles.listContainer}>
+                {enrollments.map((enrollment) => (
+                  <div key={enrollment.id} className={styles.listItem}>
+                    <div className={styles.listItemHeader}>
+                      <div className={styles.studentInfo}>
+                        <span className={styles.studentName}>{enrollment.studentName}</span>
+                        <span className={styles.studentEmail}>{enrollment.studentEmail}</span>
+                      </div>
+                      <span className={`${styles.statusBadge} ${styles.enrolled}`}>
+                        Enrolled
+                      </span>
+                    </div>
+                    <div className={styles.listItemFooter}>
+                      <span className={styles.timestamp}>
+                        Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </CompanyLayout>

@@ -46,6 +46,8 @@ const ApplicationsPage: React.FC = () => {
   const [filterInternship, setFilterInternship] = useState<string>('all');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingApplication, setEditingApplication] = useState<Application | null>(null);
   const [formData, setFormData] = useState({
     internshipId: '',
     enrollmentId: '',
@@ -156,6 +158,69 @@ const ApplicationsPage: React.FC = () => {
     } catch (err) {
       console.error('Error updating status:', err);
       alert('Failed to update application status');
+    }
+  };
+
+  const handleEdit = (application: Application) => {
+    setEditingApplication(application);
+    setFormData({
+      internshipId: application.internshipId,
+      enrollmentId: '', // Will be populated from enrollment data
+      coverLetter: application.coverLetter,
+      projectDescription: application.projectDescription,
+      resumeUrl: application.resumeUrl,
+      githubUrl: application.githubUrl || '',
+      portfolioUrl: application.portfolioUrl || '',
+      notes: application.notes || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateApplication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingApplication) return;
+
+    try {
+      await api.put(`/applications/${editingApplication.id}`, {
+        coverLetter: formData.coverLetter,
+        projectDescription: formData.projectDescription,
+        resumeUrl: formData.resumeUrl,
+        githubUrl: formData.githubUrl,
+        portfolioUrl: formData.portfolioUrl,
+        notes: formData.notes,
+      });
+
+      await fetchData();
+      setShowEditModal(false);
+      setEditingApplication(null);
+      setFormData({
+        internshipId: '',
+        enrollmentId: '',
+        coverLetter: '',
+        projectDescription: '',
+        resumeUrl: '',
+        githubUrl: '',
+        portfolioUrl: '',
+        notes: '',
+      });
+    } catch (err) {
+      console.error('Error updating application:', err);
+      alert('Failed to update application');
+    }
+  };
+
+  const handleDelete = async (applicationId: string) => {
+    if (!window.confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/applications/${applicationId}`);
+      setApplications(applications.filter(app => app.id !== applicationId));
+    } catch (err) {
+      console.error('Error deleting application:', err);
+      alert('Failed to delete application');
     }
   };
 
@@ -291,6 +356,21 @@ const ApplicationsPage: React.FC = () => {
                 >
                   View Full Details
                 </button>
+
+                <div className={styles.cardActions}>
+                  <button
+                    className={styles.editButton}
+                    onClick={() => handleEdit(application)}
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    className={styles.deleteButton}
+                    onClick={() => handleDelete(application.id)}
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -604,6 +684,120 @@ const ApplicationsPage: React.FC = () => {
                   </button>
                   <button type="submit" className={styles.submitButton}>
                     Create Application
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Application Modal */}
+        {showEditModal && editingApplication && (
+          <div className={styles.modal} onClick={() => setShowEditModal(false)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>Edit Application</h2>
+                <button className={styles.closeButton} onClick={() => setShowEditModal(false)}>
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateApplication} className={styles.form}>
+                <div className={styles.formSection}>
+                  <h3>ℹ️ Application Info</h3>
+                  <div className={styles.infoDisplay}>
+                    <p><strong>Student:</strong> {editingApplication.studentName}</p>
+                    <p><strong>Internship:</strong> {editingApplication.internshipTitle}</p>
+                  </div>
+                </div>
+
+                <div className={styles.formSection}>
+                  <h3>✍️ Application Content</h3>
+                  
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Cover Letter *</label>
+                    <textarea
+                      value={formData.coverLetter}
+                      onChange={(e) => setFormData({ ...formData, coverLetter: e.target.value })}
+                      required
+                      className={styles.textarea}
+                      rows={6}
+                      placeholder="Enter cover letter..."
+                    />
+                    <span className={styles.charCount}>{formData.coverLetter.length} characters</span>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Project Description *</label>
+                    <textarea
+                      value={formData.projectDescription}
+                      onChange={(e) => setFormData({ ...formData, projectDescription: e.target.value })}
+                      required
+                      className={styles.textarea}
+                      rows={6}
+                      placeholder="Describe the project work..."
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formSection}>
+                  <h3>🔗 Links (Optional)</h3>
+                  
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Resume URL</label>
+                    <input
+                      type="url"
+                      value={formData.resumeUrl}
+                      onChange={(e) => setFormData({ ...formData, resumeUrl: e.target.value })}
+                      className={styles.input}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>GitHub URL</label>
+                    <input
+                      type="url"
+                      value={formData.githubUrl}
+                      onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                      className={styles.input}
+                      placeholder="https://github.com/..."
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Portfolio URL</label>
+                    <input
+                      type="url"
+                      value={formData.portfolioUrl}
+                      onChange={(e) => setFormData({ ...formData, portfolioUrl: e.target.value })}
+                      className={styles.input}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Notes</label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      className={styles.textarea}
+                      rows={3}
+                      placeholder="Additional notes..."
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.cancelButton}
+                    onClick={() => setShowEditModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className={styles.submitButton}>
+                    Update Application
                   </button>
                 </div>
               </form>

@@ -837,3 +837,58 @@
   }
 }
 
+/* Card Actions */
+.cardActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.editButton,
+.deleteButton {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.editButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.deleteButton {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.deleteButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Info Display for Edit Modal */
+.infoDisplay {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.infoDisplay p {
+  margin: 0.5rem 0;
+  color: #374151;
+}
+
+.infoDisplay strong {
+  color: #1f2937;
+}

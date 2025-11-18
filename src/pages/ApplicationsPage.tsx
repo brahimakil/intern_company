@@ -27,15 +27,35 @@ interface Internship {
   title: string;
 }
 
+interface Enrollment {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  internshipId: string;
+}
+
 const ApplicationsPage: React.FC = () => {
   const { company } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [internships, setInternships] = useState<Internship[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
   const [filterInternship, setFilterInternship] = useState<string>('all');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formData, setFormData] = useState({
+    internshipId: '',
+    enrollmentId: '',
+    coverLetter: '',
+    projectDescription: '',
+    resumeUrl: '',
+    githubUrl: '',
+    portfolioUrl: '',
+    notes: '',
+  });
 
   useEffect(() => {
     fetchData();
@@ -44,9 +64,10 @@ const ApplicationsPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [appsResponse, internshipsResponse] = await Promise.all([
+      const [appsResponse, internshipsResponse, enrollmentsResponse] = await Promise.all([
         api.get('/applications'),
         api.get('/internships'),
+        api.get('/enrollments'),
       ]);
 
       // Filter applications for this company's internships
@@ -64,13 +85,65 @@ const ApplicationsPage: React.FC = () => {
           internshipTitle: app.internship?.title || 'Unknown Internship',
         }));
 
+      // Filter enrollments for this company's internships
+      const companyEnrollments = enrollmentsResponse.data
+        .filter((enrollment: any) => companyInternshipIds.has(enrollment.internshipId))
+        .map((enrollment: any) => ({
+          id: enrollment.id,
+          studentId: enrollment.studentId,
+          studentName: enrollment.studentName || 'Unknown Student',
+          studentEmail: enrollment.studentEmail || 'N/A',
+          internshipId: enrollment.internshipId,
+        }));
+
       setApplications(companyApplications);
       setInternships(companyInternships);
+      setEnrollments(companyEnrollments);
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Failed to load applications');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateApplication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const selectedEnrollment = enrollments.find(e => e.id === formData.enrollmentId);
+    if (!selectedEnrollment) {
+      alert('Please select a valid enrollment');
+      return;
+    }
+
+    try {
+      await api.post('/applications', {
+        studentId: selectedEnrollment.studentId,
+        internshipId: formData.internshipId,
+        status: 'pending',
+        coverLetter: formData.coverLetter,
+        projectDescription: formData.projectDescription,
+        resumeUrl: formData.resumeUrl,
+        githubUrl: formData.githubUrl,
+        portfolioUrl: formData.portfolioUrl,
+        notes: formData.notes,
+      });
+
+      await fetchData();
+      setShowCreateModal(false);
+      setFormData({
+        internshipId: '',
+        enrollmentId: '',
+        coverLetter: '',
+        projectDescription: '',
+        resumeUrl: '',
+        githubUrl: '',
+        portfolioUrl: '',
+        notes: '',
+      });
+    } catch (err) {
+      console.error('Error creating application:', err);
+      alert('Failed to create application');
     }
   };
 
@@ -97,6 +170,12 @@ const ApplicationsPage: React.FC = () => {
       <div className={styles.page}>
         <div className={styles.header}>
           <h1>Applications</h1>
+          <button 
+            className={styles.createButton}
+            onClick={() => setShowCreateModal(true)}
+          >
+            + Create Application
+          </button>
         </div>
 
         {/* Filters */}
@@ -372,6 +451,162 @@ const ApplicationsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Application Modal */}
+        {showCreateModal && (
+          <div className={styles.modal} onClick={() => setShowCreateModal(false)}>
+            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2>Create New Application</h2>
+                <button className={styles.closeButton} onClick={() => setShowCreateModal(false)}>
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateApplication} className={styles.form}>
+                <div className={styles.formSection}>
+                  <h3>📋 Select Internship & Student</h3>
+                  
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Internship *</label>
+                    <select
+                      value={formData.internshipId}
+                      onChange={(e) => {
+                        setFormData({ 
+                          ...formData, 
+                          internshipId: e.target.value,
+                          enrollmentId: '' // Reset enrollment when internship changes
+                        });
+                      }}
+                      required
+                      className={styles.select}
+                    >
+                      <option value="">-- Select an internship --</option>
+                      {internships.map((internship) => (
+                        <option key={internship.id} value={internship.id}>
+                          {internship.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Student (Enrolled) *</label>
+                    <select
+                      value={formData.enrollmentId}
+                      onChange={(e) => setFormData({ ...formData, enrollmentId: e.target.value })}
+                      required
+                      className={styles.select}
+                      disabled={!formData.internshipId}
+                    >
+                      <option value="">-- Select a student --</option>
+                      {enrollments
+                        .filter(e => e.internshipId === formData.internshipId)
+                        .map((enrollment) => (
+                          <option key={enrollment.id} value={enrollment.id}>
+                            {enrollment.studentName} ({enrollment.studentEmail})
+                          </option>
+                        ))}
+                    </select>
+                    {formData.internshipId && enrollments.filter(e => e.internshipId === formData.internshipId).length === 0 && (
+                      <p className={styles.hint}>💡 No enrolled students for this internship</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.formSection}>
+                  <h3>✍️ Application Content</h3>
+                  
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Cover Letter *</label>
+                    <textarea
+                      value={formData.coverLetter}
+                      onChange={(e) => setFormData({ ...formData, coverLetter: e.target.value })}
+                      required
+                      className={styles.textarea}
+                      rows={6}
+                      placeholder="Enter cover letter..."
+                    />
+                    <span className={styles.charCount}>{formData.coverLetter.length} characters</span>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Project Description *</label>
+                    <textarea
+                      value={formData.projectDescription}
+                      onChange={(e) => setFormData({ ...formData, projectDescription: e.target.value })}
+                      required
+                      className={styles.textarea}
+                      rows={6}
+                      placeholder="Describe the project work..."
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.formSection}>
+                  <h3>🔗 Links (Optional)</h3>
+                  
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Resume URL</label>
+                    <input
+                      type="url"
+                      value={formData.resumeUrl}
+                      onChange={(e) => setFormData({ ...formData, resumeUrl: e.target.value })}
+                      className={styles.input}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>GitHub URL</label>
+                    <input
+                      type="url"
+                      value={formData.githubUrl}
+                      onChange={(e) => setFormData({ ...formData, githubUrl: e.target.value })}
+                      className={styles.input}
+                      placeholder="https://github.com/..."
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Portfolio URL</label>
+                    <input
+                      type="url"
+                      value={formData.portfolioUrl}
+                      onChange={(e) => setFormData({ ...formData, portfolioUrl: e.target.value })}
+                      className={styles.input}
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.label}>Notes</label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      className={styles.textarea}
+                      rows={3}
+                      placeholder="Additional notes..."
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={styles.cancelButton}
+                    onClick={() => setShowCreateModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className={styles.submitButton}>
+                    Create Application
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

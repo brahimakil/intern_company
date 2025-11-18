@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { auth } from '../firebase/config';
 import { Building2, MapPin, Briefcase, FileText, Image, Lock, Save, Upload } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 interface Company {
   id: string;
   name: string;
@@ -61,7 +63,7 @@ const ProfilePage: React.FC = () => {
       const token = await user.getIdToken();
       const companyId = user.email?.replace(/[@.]/g, '_');
       
-      const response = await fetch(`http://localhost:3000/companies/${companyId}`, {
+      const response = await fetch(`${API_BASE_URL}/companies/${companyId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -103,7 +105,7 @@ const ProfilePage: React.FC = () => {
       const token = await user.getIdToken();
       const companyId = user.email?.replace(/[@.]/g, '_');
 
-      const response = await fetch(`http://localhost:3000/companies/${companyId}`, {
+      const response = await fetch(`${API_BASE_URL}/companies/${companyId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -155,7 +157,7 @@ const ProfilePage: React.FC = () => {
       const token = await user.getIdToken();
       const companyId = user.email?.replace(/[@.]/g, '_');
 
-      const response = await fetch(`http://localhost:3000/companies/${companyId}`, {
+      const response = await fetch(`${API_BASE_URL}/companies/${companyId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -216,7 +218,7 @@ const ProfilePage: React.FC = () => {
       const formDataUpload = new FormData();
       formDataUpload.append('logo', logoFile);
 
-      const response = await fetch(`http://localhost:3000/companies/${companyId}/logo`, {
+      const response = await fetch(`${API_BASE_URL}/companies/${companyId}/logo`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

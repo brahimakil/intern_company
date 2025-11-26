@@ -33,6 +33,7 @@ interface Enrollment {
   studentName: string;
   studentEmail: string;
   internshipId: string;
+  status: string;
 }
 
 const ApplicationsPage: React.FC = () => {
@@ -96,6 +97,7 @@ const ApplicationsPage: React.FC = () => {
           studentName: enrollment.studentName || 'Unknown Student',
           studentEmail: enrollment.studentEmail || 'N/A',
           internshipId: enrollment.internshipId,
+          status: enrollment.status || 'pending',
         }));
 
       setApplications(companyApplications);
@@ -584,15 +586,15 @@ const ApplicationsPage: React.FC = () => {
                     >
                       <option value="">-- Select a student --</option>
                       {enrollments
-                        .filter(e => e.internshipId === formData.internshipId)
+                        .filter(e => e.internshipId === formData.internshipId && e.status === 'accepted')
                         .map((enrollment) => (
                           <option key={enrollment.id} value={enrollment.id}>
                             {enrollment.studentName} ({enrollment.studentEmail})
                           </option>
                         ))}
                     </select>
-                    {formData.internshipId && enrollments.filter(e => e.internshipId === formData.internshipId).length === 0 && (
-                      <p className={styles.hint}>💡 No enrolled students for this internship</p>
+                    {formData.internshipId && enrollments.filter(e => e.internshipId === formData.internshipId && e.status === 'accepted').length === 0 && (
+                      <p className={styles.hint}>💡 No accepted students for this internship</p>
                     )}
                   </div>
                 </div>

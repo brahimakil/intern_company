@@ -32,7 +32,9 @@ interface Enrollment {
   id: string;
   studentName: string;
   studentEmail: string;
+  studentResumeUrl?: string;
   enrolledAt: string;
+  status: string;
 }
 
 const InternshipDetailsPage: React.FC = () => {
@@ -87,17 +89,38 @@ const InternshipDetailsPage: React.FC = () => {
   const fetchEnrollments = async (internshipId: string) => {
     try {
       const response = await api.get('/enrollments');
+      console.log('All enrollments:', response.data);
       const internshipEnrollments = response.data
         .filter((enrollment: any) => enrollment.internshipId === internshipId)
-        .map((enrollment: any) => ({
-          id: enrollment.id,
-          studentName: enrollment.studentName || 'Unknown Student',
-          studentEmail: enrollment.studentEmail || 'N/A',
-          enrolledAt: enrollment.enrolledDate || enrollment.createdAt,
-        }));
+        .map((enrollment: any) => {
+          console.log('Enrollment data:', enrollment);
+          return {
+            id: enrollment.id,
+            studentName: enrollment.studentName || 'Unknown Student',
+            studentEmail: enrollment.studentEmail || 'N/A',
+            studentResumeUrl: enrollment.studentResumeUrl || enrollment.cvUrl || enrollment.resumeUrl,
+            enrolledAt: enrollment.enrolledDate || enrollment.createdAt,
+            status: enrollment.status || 'pending',
+          };
+        });
+      console.log('Processed enrollments:', internshipEnrollments);
       setEnrollments(internshipEnrollments);
     } catch (err) {
       console.error('Error fetching enrollments:', err);
+    }
+  };
+
+  const handleUpdateEnrollmentStatus = async (enrollmentId: string, newStatus: string) => {
+    if (!window.confirm(`Are you sure you want to ${newStatus} this enrollment?`)) {
+      return;
+    }
+
+    try {
+      await api.put(`/enrollments/${enrollmentId}`, { status: newStatus });
+      if (id) fetchEnrollments(id);
+    } catch (err) {
+      console.error('Error updating enrollment status:', err);
+      alert('Failed to update enrollment status');
     }
   };
 
@@ -269,14 +292,42 @@ const InternshipDetailsPage: React.FC = () => {
                         <span className={styles.studentName}>{enrollment.studentName}</span>
                         <span className={styles.studentEmail}>{enrollment.studentEmail}</span>
                       </div>
-                      <span className={`${styles.statusBadge} ${styles.enrolled}`}>
-                        Enrolled
+                      <span className={`${styles.statusBadge} ${styles[enrollment.status]}`}>
+                        {enrollment.status}
                       </span>
                     </div>
                     <div className={styles.listItemFooter}>
                       <span className={styles.timestamp}>
                         Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}
                       </span>
+                      <div className={styles.actionButtons}>
+                        {enrollment.studentResumeUrl && (
+                          <a 
+                            href={enrollment.studentResumeUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className={styles.viewCvButton}
+                          >
+                            View CV
+                          </a>
+                        )}
+                        {enrollment.status === 'pending' && (
+                          <>
+                            <button 
+                              className={styles.acceptButton}
+                              onClick={() => handleUpdateEnrollmentStatus(enrollment.id, 'accepted')}
+                            >
+                              Accept
+                            </button>
+                            <button 
+                              className={styles.rejectButton}
+                              onClick={() => handleUpdateEnrollmentStatus(enrollment.id, 'rejected')}
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

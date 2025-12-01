@@ -69,17 +69,15 @@ const InternshipDetailsPage: React.FC = () => {
 
   const fetchApplications = async (internshipId: string) => {
     try {
-      const response = await api.get('/applications');
-      const internshipApplications = response.data
-        .filter((app: any) => app.internshipId === internshipId)
-        .map((app: any) => ({
-          id: app.id,
-          studentName: app.student?.fullName || 'Unknown Student',
-          studentEmail: app.student?.email || 'Unknown Email',
-          status: app.status,
-          coverLetter: app.coverLetter || '',
-          createdAt: app.createdAt,
-        }));
+      const response = await api.get(`/applications/internship/${internshipId}`);
+      const internshipApplications = response.data.map((app: any) => ({
+        id: app.id,
+        studentName: app.student?.fullName || 'Unknown Student',
+        studentEmail: app.student?.email || 'Unknown Email',
+        status: app.status,
+        coverLetter: app.coverLetter || '',
+        createdAt: app.createdAt,
+      }));
       setApplications(internshipApplications);
     } catch (err) {
       console.error('Error fetching applications:', err);
@@ -88,21 +86,19 @@ const InternshipDetailsPage: React.FC = () => {
 
   const fetchEnrollments = async (internshipId: string) => {
     try {
-      const response = await api.get('/enrollments');
-      console.log('All enrollments:', response.data);
-      const internshipEnrollments = response.data
-        .filter((enrollment: any) => enrollment.internshipId === internshipId)
-        .map((enrollment: any) => {
-          console.log('Enrollment data:', enrollment);
-          return {
-            id: enrollment.id,
-            studentName: enrollment.studentName || 'Unknown Student',
-            studentEmail: enrollment.studentEmail || 'N/A',
-            studentResumeUrl: enrollment.studentResumeUrl || enrollment.cvUrl || enrollment.resumeUrl,
-            enrolledAt: enrollment.enrolledDate || enrollment.createdAt,
-            status: enrollment.status || 'pending',
-          };
-        });
+      const response = await api.get(`/enrollments/internship/${internshipId}`);
+      console.log('Internship enrollments:', response.data);
+      const internshipEnrollments = response.data.map((enrollment: any) => {
+        console.log('Enrollment data:', enrollment);
+        return {
+          id: enrollment.id,
+          studentName: enrollment.studentName || 'Unknown Student',
+          studentEmail: enrollment.studentEmail || 'N/A',
+          studentResumeUrl: enrollment.studentResumeUrl,
+          enrolledAt: enrollment.enrolledDate || enrollment.createdAt,
+          status: enrollment.status || 'pending',
+        };
+      });
       console.log('Processed enrollments:', internshipEnrollments);
       setEnrollments(internshipEnrollments);
     } catch (err) {
